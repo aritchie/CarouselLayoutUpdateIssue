@@ -1,0 +1,45 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" xmlns:carousellayoutupdateissue="clr-namespace:CarouselLayoutUpdateIssue"
+             x:DataType="carousellayoutupdateissue:MainPageViewModel"
+             x:Class="CarouselLayoutUpdateIssue.MainPage">
+    <ContentPage.BindingContext>
+        <carousellayoutupdateissue:MainPageViewModel/>
+
+    </ContentPage.BindingContext>
+    <StackLayout
+            Padding="30,0" VerticalOptions="Fill"
+            Spacing="25">
+        <CarouselView VerticalOptions="StartAndExpand"
+                          ItemsSource="{Binding InstallationModels}"
+                          IsSwipeEnabled="False"
+                          ItemsUpdatingScrollMode="KeepItemsInView"
+                          CurrentItem="{Binding SelectedItem}"
+                          IsScrollAnimated="False"
+                          IsBounceEnabled="False">
+            <CarouselView.ItemTemplate>
+                <DataTemplate x:DataType="carousellayoutupdateissue:ExampleModel">
+                    <StackLayout>
+                        <Image Source="{Binding ImageURL}" />
+                    </StackLayout>
+                </DataTemplate>
+
+            </CarouselView.ItemTemplate>
+        </CarouselView>
+        <Button
+            VerticalOptions="End"
+            Text="Next"
+            BackgroundColor="Green"
+            TextColor="White"
+            Command="{Binding RotateNextCommand}">
+        </Button>
+        <Button
+            VerticalOptions="End"
+            Text="Previous"
+            BackgroundColor="Green"
+            TextColor="White"
+            Command="{Binding RotateBackCommand}">
+        </Button>
+    </StackLayout>
+</ContentPage>
+
