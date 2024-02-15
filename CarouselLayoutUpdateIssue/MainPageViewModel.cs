@@ -1,88 +1,139 @@
-﻿using Microsoft.Maui.Controls;
-using System;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System.Reflection;
 using System.Windows.Input;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace CarouselLayoutUpdateIssue
+namespace CarouselLayoutUpdateIssue;
+
+
+public class MainPageViewModel : ViewModel
 {
-	public class MainPageViewModel : INotifyPropertyChanged
+	public MainPageViewModel()
+	{
+        RotateNextCommand = new Command(RotateNext);
+        RotateBackCommand = new Command(RotateBack);
+        FlushCacheAndReload = new Command(async () =>
+        {
+            var imageManagerDiskCache = Path.Combine(FileSystem.CacheDirectory, "image_manager_disk_cache");
+
+            if (Directory.Exists(imageManagerDiskCache))
+            {
+                foreach (var imageCacheFile in Directory.EnumerateFiles(imageManagerDiskCache))
+                {
+                    File.Delete(imageCacheFile);
+                }
+            }
+            SelectedItem = null;
+            _index = 0;
+        });
+    }
+
+
+    public ICommand RotateBackCommand { get; }
+    public ICommand RotateNextCommand { get; }
+    public ICommand FlushCacheAndReload { get; }
+
+
+    List<ItemViewModel> _installationModels = new();
+    public List<ItemViewModel> InstallationModels
     {
-        private List<ExampleModel> _installationModels = new List<ExampleModel>();
-		public List<ExampleModel> InstallationModels
+        get => _installationModels;
+        private set
         {
-            get => _installationModels;
-            set
-            {
-                _installationModels = value;
-                OnPropertyChanged(nameof(InstallationModels));
-            }
+            _installationModels = value;
+            OnPropertyChanged(nameof(InstallationModels));
         }
+    }
 
 
-        private ExampleModel _selectedItem = new ExampleModel();
-        public ExampleModel SelectedItem
+    ItemViewModel _selectedItem = null!;
+    public ItemViewModel SelectedItem
+    {
+        get => _selectedItem;
+        private set
         {
-            get => _selectedItem;
-            set
-            {
-                _selectedItem = value;
-                OnPropertyChanged(nameof(SelectedItem));
-            }
+            _selectedItem = value;
+            OnPropertyChanged(nameof(SelectedItem));
         }
-        private int _index = 0;
+    }
 
-		public MainPageViewModel()
-		{
-            _ = LoadJsonDataAsync();
+    private int _index = 0;
 
-		}
+    public async void OnAppearing()
+    {
+        await LoadJsonDataAsync();
+    }
 
-        private async Task LoadJsonDataAsync()
+    private async Task LoadJsonDataAsync()
+    {
+        var assembly = IntrospectionExtensions.GetTypeInfo(typeof(App)).Assembly;
+        Stream? stream = assembly.GetManifestResourceStream("CarouselLayoutUpdateIssue.Resources.ExampleModels.json");
+        if (stream != null)
         {
-            var assembly = IntrospectionExtensions.GetTypeInfo(typeof(App)).Assembly;
-            Stream? stream = assembly.GetManifestResourceStream("CarouselLayoutUpdateIssue.Resources.ExampleModels.json");
-            if (stream != null)
-            {
-                using var reader = new StreamReader(stream);
-                var installationModelJson = await reader.ReadToEndAsync();
-                if (string.IsNullOrWhiteSpace(installationModelJson)) return;
-                InstallationModels = JsonConvert.DeserializeObject<List<ExampleModel>>(installationModelJson);
-                Console.WriteLine(InstallationModels.Count);
-            }
+            using var reader = new StreamReader(stream);
+            var installationModelJson = await reader.ReadToEndAsync();
+            if (string.IsNullOrWhiteSpace(installationModelJson))
+                return;
+
+            InstallationModels = JsonConvert.DeserializeObject<List<ItemViewModel>>(installationModelJson)!;
+            Console.WriteLine(InstallationModels.Count);
         }
+    }
 
-        private Command? rotateNextCommand;
 
-
-        public ICommand RotateNextCommand => rotateNextCommand ??= new Command(RotateNext);
-
-        private void RotateNext()
+    private void RotateNext()
+    {
+        if(_index < InstallationModels.Count - 1)
         {
-            if(_index < InstallationModels.Count - 1)
-            {
-                _index++;
-                SelectedItem = InstallationModels[_index];
-            }
+            _index++;
+            
+            SelectedItem = InstallationModels[_index];
         }
+    }
 
-        public event PropertyChangedEventHandler? PropertyChanged;
-        public void OnPropertyChanged([CallerMemberName] string name = "") =>
-         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-
-        private Command rotateBackCommand;
-        public ICommand RotateBackCommand => rotateBackCommand ??= new Command(RotateBack);
-
-        private void RotateBack()
+    private void RotateBack()
+    {
+        if (_index > 0)
         {
-            if (_index > 0)
-            {
-                _index--;
-                SelectedItem = InstallationModels[_index];
-            }
+            _index--;
+            SelectedItem.IsVisible = false;
+            SelectedItem = InstallationModels[_index];
+            SelectedItem.IsVisible = true;
         }
     }
 }
 
+public class ItemViewModel : ViewModel
+{
+
+bool _isVisible;
+public bool IsVisible
+{
+    get => _isVisible;
+    set
+    {
+        _isVisible = value;
+        OnPropertyChanged();
+    }
+}
+
+string _imageUri;
+public string ImageURL
+{
+    get => _imageUri;
+    set
+    {
+        _imageUri = value;
+        OnPropertyChanged();
+    }
+}
+}
+
+
+public abstract class ViewModel : INotifyPropertyChanged
+{
+public event PropertyChangedEventHandler? PropertyChanged;
+public void OnPropertyChanged([CallerMemberName] string name = "") =>
+    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+}
