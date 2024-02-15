@@ -22,7 +22,7 @@
             <CarouselView.ItemTemplate>
                 <DataTemplate x:DataType="carousellayoutupdateissue:ItemViewModel">
                     <StackLayout>
-                        <Image Source="{Binding ImageURL}" />
+                        <Image Source="{Binding ImageURL}" IsVisible="{Binding IsVisible}" />
                     </StackLayout>
                 </DataTemplate>
 

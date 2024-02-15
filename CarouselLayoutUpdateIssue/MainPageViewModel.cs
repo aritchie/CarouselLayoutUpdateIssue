@@ -13,19 +13,15 @@ public class MainPageViewModel : ViewModel
 	{
         RotateNextCommand = new Command(RotateNext);
         RotateBackCommand = new Command(RotateBack);
-        FlushCacheAndReload = new Command(async () =>
+        FlushCacheAndReload = new Command(() =>
         {
-            var imageManagerDiskCache = Path.Combine(FileSystem.CacheDirectory, "image_manager_disk_cache");
+            var cache = new DirectoryInfo(FileSystem.CacheDirectory);
+            var cacheFiles = cache.GetFiles("*.png", SearchOption.AllDirectories);
+            foreach (var file in cacheFiles)
+                file.Delete();
 
-            if (Directory.Exists(imageManagerDiskCache))
-            {
-                foreach (var imageCacheFile in Directory.EnumerateFiles(imageManagerDiskCache))
-                {
-                    File.Delete(imageCacheFile);
-                }
-            }
-            SelectedItem = null;
             _index = 0;
+            SetOnIndex();
         });
     }
 
@@ -42,7 +38,7 @@ public class MainPageViewModel : ViewModel
         private set
         {
             _installationModels = value;
-            OnPropertyChanged(nameof(InstallationModels));
+            OnPropertyChanged();
         }
     }
 
@@ -54,15 +50,15 @@ public class MainPageViewModel : ViewModel
         private set
         {
             _selectedItem = value;
-            OnPropertyChanged(nameof(SelectedItem));
+            OnPropertyChanged();
         }
     }
 
     private int _index = 0;
 
-    public async void OnAppearing()
+    public void OnAppearing()
     {
-        await LoadJsonDataAsync();
+        _ = LoadJsonDataAsync();
     }
 
     private async Task LoadJsonDataAsync()
@@ -87,8 +83,7 @@ public class MainPageViewModel : ViewModel
         if(_index < InstallationModels.Count - 1)
         {
             _index++;
-            
-            SelectedItem = InstallationModels[_index];
+            SetOnIndex();
         }
     }
 
@@ -97,43 +92,49 @@ public class MainPageViewModel : ViewModel
         if (_index > 0)
         {
             _index--;
-            SelectedItem.IsVisible = false;
-            SelectedItem = InstallationModels[_index];
-            SelectedItem.IsVisible = true;
+            SetOnIndex();
         }
+    }
+
+    void SetOnIndex()
+    {
+        if (SelectedItem != null)
+            SelectedItem.IsVisible = false;
+
+        SelectedItem = InstallationModels[_index];
+        SelectedItem.IsVisible = true;
     }
 }
 
 public class ItemViewModel : ViewModel
 {
-
-bool _isVisible;
-public bool IsVisible
-{
-    get => _isVisible;
-    set
+    bool _isVisible;
+    public bool IsVisible
     {
-        _isVisible = value;
-        OnPropertyChanged();
+        get => _isVisible;
+        set
+        {
+            _isVisible = value;
+            OnPropertyChanged();
+        }
     }
-}
 
-string _imageUri;
-public string ImageURL
-{
-    get => _imageUri;
-    set
+    string _imageUri = null!;
+    public string ImageURL
     {
-        _imageUri = value;
-        OnPropertyChanged();
+        get => _imageUri;
+        set
+        {
+            _imageUri = value;
+            OnPropertyChanged();
+        }
     }
-}
 }
 
 
 public abstract class ViewModel : INotifyPropertyChanged
 {
-public event PropertyChangedEventHandler? PropertyChanged;
-public void OnPropertyChanged([CallerMemberName] string name = "") =>
-    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    public event PropertyChangedEventHandler? PropertyChanged;
+    public void OnPropertyChanged([CallerMemberName] string name = "") =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
